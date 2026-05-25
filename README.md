@@ -180,6 +180,29 @@ Dark mode = `.dark` class on `<html>` (or any ancestor).
 
 [ai.sayantan.sh](https://ai.sayantan.sh) is the real-world site this was extracted from. Same code, real persona. The [companion blog post](https://www.sayantan.sh/blog/the-page-is-the-answer) walks through the architecture decisions.
 
+## Bootstrap from a resume (Claude Code skill)
+
+livecv has a companion **Claude Code skill** that scaffolds a complete project from a resume PDF. The skill is distributed separately from the npm runtime — it lives in this repo's [`skill/livecv/`](./skill/livecv) folder and is not bundled in the npm tarball.
+
+**Install the skill** (clone the repo, then `cp` the skill folder):
+
+```bash
+git clone --depth=1 https://github.com/sayantan94/livecv.git
+cp -r livecv/skill/livecv ~/.claude/skills/livecv
+```
+
+That's it — no `npm install`, no Node tooling, just two commands.
+
+**Use it from anywhere:**
+
+```bash
+claude -p "use the livecv skill to scaffold ./my-portfolio from ./resume.pdf"
+```
+
+Claude Code reads the PDF natively, extracts identity + career + projects + patent + education, writes 17 files (the same structure as [`example/`](./example)), and prints next steps. After that: `cd my-portfolio && cp .env.local.example .env.local && npm install && npm run dev`.
+
+Identity, career, and projects files are generated dynamically from extracted data using livecv's `defineXxx` constructors. Their shape depends on what's actually on the resume, so they can't be templated.
+
 
 ## License
 
