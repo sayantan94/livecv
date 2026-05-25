@@ -42,3 +42,4 @@ export { PersonaSite } from "./PersonaSite";
 export { createHandler } from "./handler";
 export { buildRegistry, Fallback } from "./registry";
 export { BespokeRenderer } from "./BespokeRenderer";
+export { ThemeToggle } from "./ThemeToggle";

@@ -15,6 +15,7 @@ import type { PersonaConfig, SamplePrompt } from "./types";
 import { BespokeRenderer } from "./BespokeRenderer";
 import { renderPreview } from "./components/previews";
 import { DEFAULT_SAMPLES } from "./samples";
+import { ThemeToggle } from "./ThemeToggle";
 
 type AppDataParts = { [SPEC_DATA_PART]: SpecDataPart };
 type AppMessage = UIMessage<unknown, AppDataParts>;
@@ -283,6 +284,7 @@ function DefaultHeader({
             <ArrowUpRight className="h-3 w-3" />
           </a>
         )}
+        <ThemeToggle />
       </div>
     </header>
   );
