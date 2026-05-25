@@ -1,0 +1,37 @@
+{
+  "name": "livecv-example",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Starter template for livecv — a Next.js app with a fictional persona. Clone, replace data/* and content/kb.md with your own, deploy.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/react": "^3.0.84",
+    "@json-render/core": "0.19.0",
+    "@json-render/react": "0.19.0",
+    "@json-render/shadcn": "0.19.0",
+    "ai": "^6.0.33",
+    "livecv": "^0.1.0",
+    "lucide-react": "^0.563.0",
+    "motion": "^12.40.0",
+    "next": "16.1.6",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.10.0",
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.7.2"
+  }
+}

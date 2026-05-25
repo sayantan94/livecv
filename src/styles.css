@@ -1,0 +1,21 @@
+/* ─────────────────────────────────────────────────────────────────
+ * livecv — pre-compiled utility CSS.
+ *
+ * This file is pre-built by `npm run build` in the livecv package and
+ * shipped as `livecv/styles.css`. It contains all Tailwind utility
+ * classes used by livecv's components, so consumer apps don't need an
+ * @source directive pointing at livecv's source.
+ *
+ * Consumers just need:
+ *   @import "tailwindcss";
+ *   @import "livecv/styles.css";
+ *   @import "livecv/theme.css";
+ *
+ * That's it — no relative paths into node_modules.
+ * ───────────────────────────────────────────────────────────────── */
+
+@import "tailwindcss";
+
+/* Scan this package's own compiled JS for utility class names. The
+   path is relative to THIS file, which lives inside the package. */
+@source "../dist/**/*.js";

@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@import "livecv/styles.css";
+@import "livecv/theme.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--lc-background);
+  --color-foreground: var(--lc-foreground);
+  --color-card: var(--lc-card);
+  --color-muted: var(--lc-muted);
+  --color-muted-foreground: var(--lc-muted-foreground);
+  --color-border: var(--lc-border);
+  --color-input: var(--lc-input);
+  --color-faint: var(--lc-faint);
+
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--lc-background);
+    color: var(--lc-foreground);
+    font-family: var(--font-ibm-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { cursor: pointer; }
+  ::selection {
+    background: var(--lc-foreground);
+    color: var(--lc-background);
+  }
+}

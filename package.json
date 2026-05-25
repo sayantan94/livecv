@@ -1,0 +1,73 @@
+{
+  "name": "livecv",
+  "version": "1.0.0",
+  "description": "Your portfolio answers questions. Define a KB, render a live persona.",
+  "license": "MIT",
+  "author": "Sayantan Bhowmik <sayantanbhow@gmail.com> (https://sayantan.sh)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sayantan94/livecv.git"
+  },
+  "homepage": "https://github.com/sayantan94/livecv#readme",
+  "bugs": {
+    "url": "https://github.com/sayantan94/livecv/issues"
+  },
+  "keywords": [
+    "generative-ui",
+    "portfolio",
+    "ai",
+    "llm",
+    "anthropic",
+    "claude",
+    "json-render",
+    "nextjs",
+    "react",
+    "persona"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./theme.css": "./src/theme.css",
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "src/theme.css",
+    "logo.svg",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run build:ts && npm run build:css",
+    "build:ts": "tsc",
+    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",
+    "prepublishOnly": "rm -rf dist && npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/react": "^3.0.0",
+    "@json-render/core": "^0.19.0",
+    "@json-render/react": "^0.19.0",
+    "@json-render/shadcn": "^0.19.0",
+    "ai": "^6.0.0",
+    "lucide-react": "^0.563.0",
+    "motion": "^12.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.7.0"
+  }
+}
