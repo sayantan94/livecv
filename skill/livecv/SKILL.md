@@ -410,6 +410,8 @@ export function getBlogPost(slug: string) {
 
 These can't be templated because their shape depends on what's on the resume. Write them by hand using livecv's `defineXxx` constructors.
 
+**Critical: optional fields use `undefined` (omit the key). Never write `field: null`** — livecv's runtime types declare optional fields as `T | undefined` (`field?: T`), so `null` produces a TS2322 error at `next build` time. If a value isn't on the resume, leave the key out entirely.
+
 #### `data/identity.ts`
 
 Imports — only include the constructors whose data was extracted:
@@ -443,14 +445,18 @@ export const principles = definePrinciples([
 export const identity = defineIdentity({
   name: "...",
   role: "...",
-  focus: "..." | null,
-  location: "..." | null,
-  employer: "..." | null,
-  yearsExperience: 9 | null,
+  // Optional fields: include if extracted, OMIT the key entirely if not.
+  // Do NOT write `focus: null` — TS2322 at build time.
+  focus: "...",            // omit if missing
+  location: "...",         // omit if missing
+  employer: "...",         // omit if missing
+  yearsExperience: 9,      // omit if missing
   bio: "...",
-  rightNow: "..." | null,
+  rightNow: "...",         // omit if missing
   email: "...",
-  links: { github, linkedin, site, blog },
+  // `links` is a required object. Inside, every URL is optional —
+  // include only what the resume actually exposes. Empty object is fine.
+  links: { github: "...", linkedin: "...", site: "..." },
   education,    // only if extracted
   patent,       // only if extracted
   knowsAbout: [/* extracted skills */],
@@ -569,7 +575,7 @@ User says: *"Create a livecv portfolio at ./my-site"*
 
 - **All output paths under the target directory.** Never write outside it.
 - **Exact dates from the resume.** "Jun 2025", not "mid-2025".
-- **Never fabricate facts.** Missing fields → `null` or `TODO:` comment.
+- **Never fabricate facts.** Missing fields → omit the key (or `TODO:` comment in prose files). Never `null`.
 - **All 17 files required.** The project won't compile if any are missing.
 - **Don't fetch from the web or GitHub.** Every template is in this file.
 
