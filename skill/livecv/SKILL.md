@@ -29,7 +29,7 @@ Don't ask follow-ups about styling, model, or theme — defaults (Claude Haiku 4
 If `EXISTS`, stop and ask the user for a fresh path. Never overwrite. Otherwise:
 
 ```bash
-mkdir -p "$TARGET"/{app/api/generate,content,data}
+mkdir -p "$TARGET"/{app/api/generate,app/api/agent-card,app/api/a2a,content,data}
 ```
 
 ### Step 2 — Extract from the resume (if provided)
@@ -38,7 +38,7 @@ Read the PDF using the Read tool (Claude Code's Read tool handles PDFs natively)
 
 If no resume was provided, skip this step. Use placeholder values in the templates below (`{{DISPLAY_NAME}}` → `"Your Name"`, `{{BIO}}` → `"TODO: 2-3 sentence intro"`, etc.).
 
-### Step 3 — Write the 14 boilerplate files
+### Step 3 — Write the 16 boilerplate files
 
 Write each file below to the target directory, substituting `{{PLACEHOLDERS}}` with extracted data (or placeholder strings if no resume).
 
@@ -127,6 +127,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    return [
+      // Publish this persona's A2A agent card at the well-known path so other
+      // agents (and a mesh like Meshmind) can discover and register it by
+      // reading the card.
+      { source: "/.well-known/agent-card.json", destination: "/api/agent-card" },
+    ];
+  },
 };
 
 export default nextConfig;
@@ -181,6 +189,144 @@ import config from "@/livecv.config";
 
 export const maxDuration = 60;
 export const POST = createHandler({ config });
+```
+
+#### `app/api/agent-card/route.ts`
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import { identity } from "@/data/identity";
+
+export const runtime = "nodejs";
+
+// LEAN A2A agent card — published at /.well-known/agent-card.json (see next.config.ts).
+// A2A cards are lightweight discovery descriptors (reach + high-level), NOT data
+// profiles. `url` points at the A2A message endpoint (/api/a2a); specifics are
+// answered LIVE there from the KB, not frozen on the card. tags carry coarse
+// discovery signal so a registry can keyword-match this persona.
+function toTag(s: string): string {
+  return s.toLowerCase().replace(/[()]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export async function GET(req: NextRequest) {
+  const origin = new URL(req.url).origin;
+  const a2a = `${origin}/api/a2a`;
+  const firstName = identity.name.split(/\s+/)[0];
+  const description =
+    `${identity.role}${identity.focus ? `, focused on ${identity.focus}` : ""}. ` +
+    `Ask about background, projects, writing, or what I'm looking for.`;
+  const tags = Array.from(
+    new Set(["persona", "q-and-a", "career", "hiring", ...(identity.knowsAbout ?? []).map(toTag)]),
+  );
+
+  return NextResponse.json(
+    {
+      protocolVersion: "0.3.0",
+      name: identity.name,
+      description,
+      url: a2a,
+      preferredTransport: "JSONRPC",
+      additionalInterfaces: [{ url: a2a, transport: "JSONRPC" }],
+      version: "1.0.0",
+      provider: { organization: identity.name, url: identity.links.site ?? origin },
+      // streaming:false — the A2A endpoint is non-streaming message/send. The
+      // browser generative-UI stream lives at /api/generate and is NOT A2A.
+      capabilities: { streaming: false, pushNotifications: false },
+      defaultInputModes: ["text/plain"],
+      defaultOutputModes: ["text/plain"],
+      skills: [
+        {
+          id: "ask_persona",
+          name: `Ask about ${firstName}`,
+          description:
+            "Ask anything about background, projects, writing, or what they're looking for — answered live from the persona's knowledge base.",
+          tags,
+          examples: ["Are you open to new roles?", "What are you building right now?"],
+        },
+      ],
+    },
+    { headers: { "cache-control": "public, max-age=300", "access-control-allow-origin": "*" } },
+  );
+}
+```
+
+#### `app/api/a2a/route.ts`
+
+```ts
+import { NextResponse } from "next/server";
+import { anthropic } from "@ai-sdk/anthropic";
+import { generateText } from "ai";
+import { buildKnowledgeBase } from "livecv";
+import config from "@/livecv.config";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+// A2A JSON-RPC message/send endpoint. Another agent asks; this answers LIVE from
+// the persona's KB. Reuses buildKnowledgeBase(config) (single-sourced with
+// /api/generate) but NOT buildSystemPrompt (it commands JSON-render UI output).
+const MAX_QUESTION_CHARS = 4000;
+const kb = buildKnowledgeBase(config);
+const firstName = config.identity.name.split(/\s+/)[0];
+const model = anthropic(config.model ?? "claude-haiku-4-5");
+const SYSTEM = `You are ${config.identity.name}'s persona agent, answering another AI agent over A2A.
+Answer in concise PLAIN TEXT (no markdown UI specs, no JSON). Speak as ${firstName} in the first person.
+Ground every claim ONLY in the knowledge base below. NEVER fabricate. If the KB lacks the answer, say so.
+
+# Knowledge Base (the ONLY source of truth)
+${kb}`;
+
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+};
+const rpcError = (id: unknown, code: number, message: string) =>
+  NextResponse.json({ jsonrpc: "2.0", id: id ?? null, error: { code, message } }, { headers: CORS });
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS });
+}
+
+export async function POST(req: Request) {
+  let body: {
+    id?: unknown;
+    method?: string;
+    params?: { message?: { parts?: Array<{ kind?: string; text?: string }>; contextId?: string } };
+  };
+  try {
+    body = await req.json();
+  } catch {
+    return rpcError(null, -32700, "Parse error");
+  }
+  const { id, method, params } = body ?? {};
+  if (method !== "message/send") return rpcError(id, -32601, "Method not found");
+  const parts = params?.message?.parts;
+  const question = Array.isArray(parts)
+    ? parts.filter((p) => p?.kind === "text").map((p) => p.text ?? "").join("\n").trim()
+    : "";
+  if (!question) return rpcError(id, -32602, "Invalid params: message.parts must contain text");
+  if (question.length > MAX_QUESTION_CHARS)
+    return rpcError(id, -32602, "Invalid params: question too long");
+
+  const { text } = await generateText({ model, system: SYSTEM, prompt: question, temperature: 0.4 });
+
+  // v1 SINGLE-TURN: contextId echoed/minted for protocol shape; prior turns NOT loaded.
+  return NextResponse.json(
+    {
+      jsonrpc: "2.0",
+      id: id ?? null,
+      result: {
+        kind: "message",
+        role: "agent",
+        messageId: crypto.randomUUID(),
+        contextId: params?.message?.contextId ?? crypto.randomUUID(),
+        parts: [{ kind: "text", text }],
+      },
+    },
+    { headers: CORS },
+  );
+}
 ```
 
 #### `app/globals.css`
@@ -507,7 +653,8 @@ If no projects were extracted, use a single placeholder cluster `{ id: "tools", 
 ### Step 5 — Print the next-steps panel
 
 ```
-✓ Scaffold complete — 17 files in {TARGET}
+✓ Scaffold complete — 19 files in {TARGET}
+  · Publishes an A2A agent card at /.well-known/agent-card.json (joinable by a mesh)
 
 What got extracted:
   · {N} career steps
@@ -537,13 +684,13 @@ Replace `{...}` with actual extracted values.
 User says: *"Use the livecv skill to scaffold ./my-site from ./resume.pdf"*
 
 1. Confirm `./my-site` is empty or missing.
-2. `mkdir -p ./my-site/{app/api/generate,content,data}`
+2. `mkdir -p ./my-site/{app/api/generate,app/api/agent-card,app/api/a2a,content,data}`
 3. Read `./resume.pdf` and extract per [references/extraction-schema.md](./references/extraction-schema.md).
-4. Write the 14 boilerplate files with `{{...}}` substituted.
+4. Write the 16 boilerplate files with `{{...}}` substituted.
 5. Generate `data/{identity,career,projects}.ts` from extracted data.
 6. Print next-steps panel.
 
-Result: 17 files in `./my-site/`. `cd my-site && npm install && npm run dev` produces a working site.
+Result: 19 files in `./my-site/`. `cd my-site && npm install && npm run dev` produces a working site that also publishes its A2A agent card.
 
 ### Example 2 — Empty templates (no resume)
 
@@ -551,7 +698,7 @@ User says: *"Create a livecv portfolio at ./my-site"*
 
 1. Validate target.
 2. Skip extraction.
-3. Write all 17 files with placeholder substitutions (`"Your Name"`, `"TODO: ..."`).
+3. Write all 19 files with placeholder substitutions (`"Your Name"`, `"TODO: ..."`).
 4. Print next-steps panel.
 
 ## Troubleshooting
@@ -576,7 +723,7 @@ User says: *"Create a livecv portfolio at ./my-site"*
 - **All output paths under the target directory.** Never write outside it.
 - **Exact dates from the resume.** "Jun 2025", not "mid-2025".
 - **Never fabricate facts.** Missing fields → omit the key (or `TODO:` comment in prose files). Never `null`.
-- **All 17 files required.** The project won't compile if any are missing.
+- **All 19 files required.** The project won't compile if any are missing.
 - **Don't fetch from the web or GitHub.** Every template is in this file.
 
 ## When NOT to use this skill

@@ -89,6 +89,8 @@ export interface Identity {
   knowsAbout?: string[];
   principles?: Principle[];
   lookingFor?: string[];
+  /** What you bring to a match — used by the mesh (meshedin) for mutual fit. */
+  offering?: string[];
 }
 
 export interface SamplePrompt {

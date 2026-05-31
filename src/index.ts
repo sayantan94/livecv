@@ -37,6 +37,8 @@ export { buildCatalog } from "./catalog";
 export { buildSystemPrompt } from "./prompt";
 export { buildKnowledgeBase } from "./kb";
 export { DEFAULT_SAMPLES } from "./samples";
+export { buildAgentCard, createA2AHandler } from "./a2a";
+export type { AgentCardOptions, A2AHandlerOptions } from "./a2a";
 
 export { PersonaSite } from "./PersonaSite";
 export { createHandler } from "./handler";
